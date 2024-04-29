@@ -1,9 +1,10 @@
 ﻿using FluentValidation;
+using Zadanie7.DTOs;
 using Zadanie7.Models;
 
 namespace Zadanie7.Validators;
 
-public class ProductWarehouseValidator : AbstractValidator<ProductWarehouse>
+public class ProductWarehouseValidator : AbstractValidator<ProductWarehouseDTO>
 {
     public ProductWarehouseValidator()
     {

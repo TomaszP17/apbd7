@@ -23,8 +23,7 @@ public static class ProductWarehouseEndpoints
         {
             return Results.ValidationProblem(validate.ToDictionary());
         }
-
-        var result = await dbServiceDapper.AddProductToWarehouse(
+        return await dbServiceDapper.AddProductToWarehouse(
             new ProductWarehouse
             {
                 IdProduct = productWarehouseDTO.IdProduct,
@@ -32,7 +31,5 @@ public static class ProductWarehouseEndpoints
                 Amount = productWarehouseDTO.Amount,
                 CreatedAt = productWarehouseDTO.CreatedAt
             });
-
-        return Results.Created();
     }
 }

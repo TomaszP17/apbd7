@@ -1,7 +1,5 @@
 ﻿using System.Data;
-using System.Data.Common;
 using System.Data.SqlClient;
-using System.Transactions;
 using Dapper;
 using Zadanie7.Models;
 
@@ -12,10 +10,10 @@ public interface IDbServiceDapper
     Task<Product?> GetProduct(int id);
     Task<Warehouse?> GetWarehouse(int id);
     Task<Order?> GetOrder(int idProduct, int amount, DateTime date);
-    Task<int> AddProductToWarehouse(ProductWarehouse productWarehouse);
+    Task<IResult> AddProductToWarehouse(ProductWarehouse productWarehouse);
     Task<ProductWarehouse?> GetProductWarehouseById(int id);
     Task UpdateOrderFulfilledAt(int id);
-    Task InsertProductWarehouse(ProductWarehouse productWarehouse, int idOrder);
+    Task<int> InsertProductWarehouse(ProductWarehouse productWarehouse, int idOrder);
 }
 
 public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
@@ -27,7 +25,6 @@ public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
         {
             await connection.OpenAsync();
         }
-
         return connection;
     }
 
@@ -67,15 +64,19 @@ public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
         await connection.ExecuteAsync("UPDATE [Order] SET FulfilledAt = @date WHERE IdOrder = @idOrder", new {date = DateTime.Now,idOrder});
     }
 
-    public async Task InsertProductWarehouse(ProductWarehouse productWarehouse, int idOrder)
+    public async Task<int> InsertProductWarehouse(ProductWarehouse productWarehouse, int idOrder)
     {
         await using var connection = await GetConnection();
+
         var product = await GetProduct(productWarehouse.IdProduct);
+        
         productWarehouse.Price = product.Price * productWarehouse.Amount;
         productWarehouse.CreatedAt = DateTime.Now;
-
-        await connection.ExecuteAsync("INSERT INTO Product_Warehouse (IdProduct, IdWarehouse, Amount, Price, CreatedAt, IdOrder) " +
-                                      "VALUES (@IdProduct, @IdWarehouse, @Amount, @Price, @CreatedAt, @IdOrder)", 
+        
+        var newId = await connection.QuerySingleAsync<int>(
+            "INSERT INTO Product_Warehouse (IdProduct, IdWarehouse, Amount, Price, CreatedAt, IdOrder) " +
+            "VALUES (@IdProduct, @IdWarehouse, @Amount, @Price, @CreatedAt, @IdOrder); " +
+            "SELECT CAST(SCOPE_IDENTITY() AS INT)", 
             new { 
                 productWarehouse.IdProduct, 
                 productWarehouse.IdWarehouse, 
@@ -84,58 +85,51 @@ public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
                 productWarehouse.CreatedAt, 
                 idOrder 
             });
+
+        productWarehouse.IdProductWarehouse = newId;
+        
+        return newId;
     }
 
-    public async Task<int> AddProductToWarehouse(ProductWarehouse productWarehouse)
+    public async Task<IResult> AddProductToWarehouse(ProductWarehouse productWarehouse)
     {
         await using var connection = await GetConnection();
-        //await using var transaction = await connection.BeginTransactionAsync();
         try
         {
             //1
             var product = await GetProduct(productWarehouse.IdProduct);
             if (product == null)
             {
-                throw new Exception("Product does not exist");
+                return Results.NotFound("Product does not exist");
             }
-
             var warehouse = await GetWarehouse(productWarehouse.IdWarehouse);
             if (warehouse == null)
             {
-                throw new Exception("Warehouse does not exist");
+                return Results.NotFound("Warehouse does not exist");
             }
-
-            /*var amount = productWarehouse.Amount;
-            if (amount <= 0)
-            {
-                throw new Exception("Amount must be greater than 0");
-            }*/
-
             //2 
             var order = await GetOrder(productWarehouse.IdProduct, productWarehouse.Amount, productWarehouse.CreatedAt);
             if (order == null)
             {
-                throw new Exception("Order does not exist");
+                return Results.NotFound("Order does not exist");
             }
-
             //3
             var orderOnWarehouse = await GetProductWarehouseById(productWarehouse.IdOrder);
             if (orderOnWarehouse != null)
             {
-                throw new Exception("Order already exists");
+                return Results.Conflict("Order already exists");
             }
             //4
             await UpdateOrderFulfilledAt(productWarehouse.IdOrder);
             //5
-            await InsertProductWarehouse(productWarehouse, order.IdOrder);
-            
+            var productWarehouseId = await InsertProductWarehouse(productWarehouse, order.IdOrder);
             //6
-            return productWarehouse.IdProductWarehouse;
+            return Results.Created("ProductWarehouse added", productWarehouseId);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-            throw;
+            return Results.Problem("Problem with adding new ProductWarehouse");
         }
     }
 }

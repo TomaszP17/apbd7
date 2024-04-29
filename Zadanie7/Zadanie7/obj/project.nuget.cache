@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "SClm5lX2zIY3x3Q8HMxFiP22ohsdGLEUYAKUDN5XoPRdNjWIm19Wfe6gz0M4/UgYvc2ZVD0f12HV6uAagfyj+Q==",
+  "dgSpecHash": "RWDVyk1mV3BNHetzMtp1yfnEapJgDa4fYu2f2B+7JoDf2zqRI4oEDfkta2j//G3ibNqVtKN66DiECGslBLfp7w==",
   "success": true,
   "projectFilePath": "C:\\Users\\Tomasz\\Desktop\\apbd7\\apbd7\\Zadanie7\\Zadanie7\\Zadanie7.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Tomasz\\.nuget\\packages\\dapper\\2.1.35\\dapper.2.1.35.nupkg.sha512",
+    "C:\\Users\\Tomasz\\.nuget\\packages\\fluentvalidation\\11.9.1\\fluentvalidation.11.9.1.nupkg.sha512",
     "C:\\Users\\Tomasz\\.nuget\\packages\\microsoft.aspnetcore.openapi\\8.0.0\\microsoft.aspnetcore.openapi.8.0.0.nupkg.sha512",
     "C:\\Users\\Tomasz\\.nuget\\packages\\microsoft.extensions.apidescription.server\\6.0.5\\microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
     "C:\\Users\\Tomasz\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",

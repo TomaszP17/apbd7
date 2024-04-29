@@ -1,6 +1,6 @@
 ﻿namespace Zadanie7.Models;
 
-public class Product_Warehouse
+public class ProductWarehouse
 {
     public int IdProductWarehouse { get; set; }
     public int IdWarehouse { get; set; }

@@ -10,10 +10,10 @@ public interface IDbServiceDapper
     Task<Product?> GetProduct(int id);
     Task<Warehouse?> GetWarehouse(int id);
     Task<Order?> GetOrder(int idProduct, int amount, DateTime date);
-    Task<Product_Warehouse> AddProductToWarehouse(Product_Warehouse productWarehouse);
-    Task<Product_Warehouse?> GetProductWarehouseById(int id);
+    Task<ProductWarehouse> AddProductToWarehouse(ProductWarehouse productWarehouse);
+    Task<ProductWarehouse?> GetProductWarehouseById(int id);
     Task UpdateOrderFulfilledAt(int id);
-    Task InsertProductWareHouse(Product_Warehouse productWarehouse);
+    Task InsertProductWarehouse(ProductWarehouse productWarehouse);
 }
 
 public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
@@ -50,10 +50,10 @@ public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
         return result;
     }
     
-    public async Task<Product_Warehouse?> GetProductWarehouseById(int id)
+    public async Task<ProductWarehouse?> GetProductWarehouseById(int id)
     {
         await using var connection = await GetConnection();
-        var result = await connection.QueryFirstOrDefaultAsync<Product_Warehouse>("SELECT * FROM Product_Warehouse WHERE IdOrder = @id", new {id});
+        var result = await connection.QueryFirstOrDefaultAsync<ProductWarehouse>("SELECT * FROM ProductWarehouse WHERE IdOrder = @id", new {id});
         return result;
     }
 
@@ -63,16 +63,17 @@ public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
         await connection.ExecuteAsync("UPDATE Order SET FulfilledAt = @date WHERE IdOrder = @idOrder", new {date = DateTime.Now,idOrder});
     }
 
-    public async Task InsertProductWarehouse(Product_Warehouse productWarehouse)
+    public async Task InsertProductWarehouse(ProductWarehouse productWarehouse)
     {
         await using var connection = await GetConnection();
         var product = await GetProduct(productWarehouse.IdProduct);
         productWarehouse.Price = product.Price * productWarehouse.Amount;
         productWarehouse.CreatedAt = DateTime.Now;
-        await connection.ExecuteAsync("INSERT INTO Product_Warehouse (IdProduct, IdWarehouse, Amount, Price, CreatedAt) VALUES (@IdProduct, @IdWarehouse, @Amount, @Price, @CreatedAt)", productWarehouse);
+        await connection.ExecuteAsync("INSERT INTO ProductWarehouse (IdProduct, IdWarehouse, Amount, Price, CreatedAt) " +
+                                      "VALUES (@IdProduct, @IdWarehouse, @Amount, @Price, @CreatedAt)", productWarehouse);
     }
 
-    public async Task<Product_Warehouse> AddProductToWarehouse(Product_Warehouse productWarehouse)
+    public async Task<ProductWarehouse> AddProductToWarehouse(ProductWarehouse productWarehouse)
     {
         await using var connection = await GetConnection();
 
@@ -84,43 +85,46 @@ public class DbServiceDapper(IConfiguration configuration) : IDbServiceDapper
             {
                 throw new Exception("Product does not exist");
             }
-            
+
             var warehouse = await GetWarehouse(productWarehouse.IdWarehouse);
             if (warehouse == null)
             {
                 throw new Exception("Warehouse does not exist");
             }
-            
+
             var amount = productWarehouse.Amount;
             if (amount <= 0)
             {
                 throw new Exception("Amount must be greater than 0");
             }
+
             //2 
             if (await GetOrder(productWarehouse.IdProduct, productWarehouse.Amount, productWarehouse.CreatedAt) == null)
             {
                 throw new Exception("Order does not exist");
             }
+
             //3
             var orderOnWarehouse = await GetProductWarehouseById(productWarehouse.IdOrder);
             if (orderOnWarehouse != null)
             {
                 throw new Exception("Order already exists");
             }
+            // tu transakcja
             //4
             await UpdateOrderFulfilledAt(productWarehouse.IdOrder);
             //5
             await InsertProductWarehouse(productWarehouse);
-            //6
             
+            // tu koniec transakcji
+            //6
+
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Console.WriteLine(e);
             throw;
         }
     }
-
-    
 }
 
